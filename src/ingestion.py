@@ -7,11 +7,10 @@ Responsável por:
 - Gerar embeddings e salvar no índice FAISS
 """
 
-import os
 from pathlib import Path
 
-import fitz  # PyMuPDF
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 
@@ -20,73 +19,49 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 APOSTILAS_DIR = BASE_DIR / "data" / "apostilas"
 FAISS_INDEX_DIR = BASE_DIR / "data" / "faiss_index"
 
-# Modelo de embeddings gratuito (não requer API key)
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+# Modelo de embeddings (igual ao hybrid-rag)
+EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
 
 
-def carregar_pdfs(pasta: Path = APOSTILAS_DIR) -> list[dict]:
+def carregar_pdfs(pasta: Path = APOSTILAS_DIR) -> list:
     """
-    Carrega todos os PDFs de uma pasta e extrai o texto de cada página.
+    Carrega todos os PDFs de uma pasta usando PyPDFDirectoryLoader.
 
     Args:
         pasta: Caminho para a pasta com os PDFs.
 
     Returns:
-        Lista de dicionários com 'texto' e 'fonte' (nome do arquivo).
+        Lista de objetos Document do LangChain.
     """
-    documentos = []
     arquivos_pdf = list(pasta.glob("*.pdf"))
 
     if not arquivos_pdf:
         print(f"Aviso: Nenhum PDF encontrado em '{pasta}'.")
-        return documentos
+        return []
 
-    for arquivo in arquivos_pdf:
-        print(f"Carregando: {arquivo.name}")
-        try:
-            with fitz.open(str(arquivo)) as doc:
-                for num_pagina, pagina in enumerate(doc, start=1):
-                    texto = pagina.get_text().strip()
-                    if texto:
-                        documentos.append({
-                            "texto": texto,
-                            "fonte": arquivo.name,
-                            "pagina": num_pagina,
-                        })
-        except Exception as e:
-            print(f"Erro ao carregar '{arquivo.name}': {e}")
-
+    loader = PyPDFDirectoryLoader(str(pasta))
+    documentos = loader.load()
     print(f"Total de páginas carregadas: {len(documentos)}")
     return documentos
 
 
-def dividir_em_chunks(documentos: list[dict]) -> list:
+def dividir_em_chunks(documentos: list) -> list:
     """
     Divide os documentos em chunks menores para indexação.
 
     Args:
-        documentos: Lista de documentos com texto e metadados.
+        documentos: Lista de objetos Document do LangChain.
 
     Returns:
-        Lista de objetos Document do LangChain.
+        Lista de objetos Document do LangChain divididos em chunks.
     """
-    from langchain.schema import Document
-
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
-        chunk_overlap=50,
-        length_function=len,
+        chunk_overlap=120,
+        add_start_index=True,
     )
 
-    chunks = []
-    for doc in documentos:
-        partes = splitter.split_text(doc["texto"])
-        for parte in partes:
-            chunks.append(Document(
-                page_content=parte,
-                metadata={"fonte": doc["fonte"], "pagina": doc["pagina"]},
-            ))
-
+    chunks = splitter.split_documents(documentos)
     print(f"Total de chunks gerados: {len(chunks)}")
     return chunks
 

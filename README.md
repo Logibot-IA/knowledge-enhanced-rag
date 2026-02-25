@@ -31,8 +31,8 @@ Pergunta do Aluno
           │
           ▼
    ┌─────────────┐
-   │ LLaMA 3.3   │  (via Groq API)
-   │ 70B (Groq)  │
+   │ LLaMA 3.3   │  (via Digital Ocean GenAI Platform)
+   │ 70B (DO)    │
    └──────┬──────┘
           │
           ▼
@@ -41,16 +41,16 @@ Pergunta do Aluno
 
 ## Stack Tecnológica
 
-| Componente         | Tecnologia                              |
-|--------------------|-----------------------------------------|
-| LLM                | LLaMA 3.3 70B via Groq API (gratuito)  |
-| Framework          | LangChain                               |
-| Vector Store       | FAISS                                   |
-| Knowledge Graph    | Neo4j Aura Free (cloud)                 |
-| PDF Parsing        | PyMuPDF (fitz)                          |
-| Interface          | FastAPI (API REST)                      |
-| Linguagem          | Python 3.10+                            |
-| Embeddings         | sentence-transformers/all-MiniLM-L6-v2  |
+| Componente         | Tecnologia                                          |
+|--------------------|-----------------------------------------------------|
+| LLM                | LLaMA 3.3 70B via Digital Ocean GenAI Platform      |
+| Framework          | LangChain                                           |
+| Vector Store       | FAISS                                               |
+| Knowledge Graph    | Neo4j Aura Free (cloud)                             |
+| PDF Parsing        | PyPDFDirectoryLoader (LangChain)                    |
+| Interface          | FastAPI (API REST)                                  |
+| Linguagem          | Python 3.10+                                        |
+| Embeddings         | sentence-transformers/all-mpnet-base-v2             |
 
 ## Estrutura de Pastas
 
@@ -76,7 +76,7 @@ kerag/
 ### 1. Pré-requisitos
 
 - Python 3.10 ou superior
-- Conta gratuita no [Groq](https://console.groq.com) para obter a API key do LLaMA
+- Conta na [Digital Ocean](https://cloud.digitalocean.com/gen-ai) para obter a API key do GenAI Platform
 - Conta gratuita no [Neo4j Aura](https://neo4j.com/cloud/aura) para o Knowledge Graph
 
 ### 2. Clonar e instalar dependências
@@ -101,8 +101,8 @@ cp .env.example .env
 Edite o arquivo `.env`:
 
 ```env
-# Groq API (gratuito em console.groq.com)
-GROQ_API_KEY=sua_chave_aqui
+# Digital Ocean GenAI Platform
+OPENAI_API_KEY=sua_chave_aqui
 
 # Neo4j Aura (gratuito em neo4j.com/cloud/aura)
 NEO4J_URI=neo4j+s://xxxxxxxx.databases.neo4j.io
@@ -110,10 +110,10 @@ NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=sua_senha_aqui
 ```
 
-#### Como obter a chave Groq
+#### Como obter a chave da Digital Ocean GenAI Platform
 
-1. Acesse [console.groq.com](https://console.groq.com)
-2. Crie uma conta gratuita
+1. Acesse [cloud.digitalocean.com/gen-ai](https://cloud.digitalocean.com/gen-ai)
+2. Crie ou acesse sua conta Digital Ocean
 3. Vá em **API Keys** → **Create API Key**
 4. Copie a chave gerada
 
@@ -274,5 +274,5 @@ Variáveis → Tipos de Dados → Operadores → Entrada e Saída
    - Fatos relacionados ao conceito
    - Pré-requisitos necessários
    - Próximos conceitos sugeridos
-4. **LLaMA 3.3 70B** (via Groq) gera uma resposta enriquecida combinando o contexto das apostilas com o conhecimento do grafo
+4. **LLaMA 3.3 70B** (via Digital Ocean GenAI Platform) gera uma resposta enriquecida combinando o contexto das apostilas com o conhecimento do grafo
 5. **Histórico** das últimas 5 mensagens é mantido por sessão para contexto contínuo

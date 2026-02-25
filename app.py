@@ -141,7 +141,7 @@ async def chat(request: ChatRequest):
             status_code=503,
             detail=(
                 "Chatbot não está disponível. "
-                "Verifique se a GROQ_API_KEY está configurada corretamente."
+                "Verifique se a OPENAI_API_KEY está configurada corretamente."
             ),
         )
 
