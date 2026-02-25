@@ -21,3 +21,6 @@ data/apostilas/*.pdf
 .idea/
 .vscode/
 *.DS_Store
+
+# ChromaDB
+chroma_langchain_db/

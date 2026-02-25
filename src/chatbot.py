@@ -1,15 +1,14 @@
 """
 Módulo principal do Chatbot KE-RAG.
 
-Implementa a lógica de conversação usando LangChain + Groq (LLaMA 3.3 70B)
+Implementa a lógica de conversação usando LangChain + Digital Ocean GenAI Platform (LLaMA 3.3 70B)
 combinada com o retriever KE-RAG.
 """
 
 import os
-from langchain_groq import ChatGroq
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferWindowMemory
-from langchain.schema import HumanMessage, AIMessage
+from langchain.schema import HumanMessage
 
 from src.retriever import KERagRetriever
 from src.knowledge_graph import KnowledgeGraph
@@ -55,17 +54,19 @@ class Chatbot:
         Args:
             knowledge_graph: Instância do KnowledgeGraph (opcional).
         """
-        groq_api_key = os.environ.get("GROQ_API_KEY", "")
-        if not groq_api_key:
+        openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+        if not openai_api_key:
             raise ValueError(
-                "Variável de ambiente GROQ_API_KEY é obrigatória. "
-                "Obtenha sua chave gratuita em console.groq.com"
+                "Variável de ambiente OPENAI_API_KEY é obrigatória. "
+                "Obtenha sua chave em cloud.digitalocean.com/gen-ai"
             )
 
-        self.llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
-            api_key=groq_api_key,
+        self.llm = ChatOpenAI(
+            model="llama3.3-70b-instruct",
+            openai_api_key=openai_api_key,
+            openai_api_base="https://inference.do-ai.run/v1",
             temperature=0.7,
+            max_tokens=1024,
         )
 
         self.retriever = KERagRetriever(knowledge_graph=knowledge_graph)
