@@ -1,0 +1,23 @@
+# Ambiente virtual Python
+.venv/
+venv/
+env/
+
+# Bytecode Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Variáveis de ambiente (contém chaves secretas)
+.env
+
+# Índice FAISS gerado localmente
+data/faiss_index/
+
+# PDFs das apostilas (não versionar arquivos grandes)
+data/apostilas/*.pdf
+
+# Arquivos de IDE e sistema
+.idea/
+.vscode/
+*.DS_Store
