@@ -6,9 +6,10 @@ combinada com o retriever KE-RAG.
 """
 
 import os
+from collections import deque
+
 from langchain_openai import ChatOpenAI
-from langchain.memory import ConversationBufferWindowMemory
-from langchain.schema import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 from src.retriever import KERagRetriever
 from src.knowledge_graph import KnowledgeGraph
@@ -71,10 +72,10 @@ class Chatbot:
 
         self.retriever = KERagRetriever(knowledge_graph=knowledge_graph)
 
-        # Histórico de conversas por sessão (últimas 5 mensagens)
-        self.memorias: dict[str, ConversationBufferWindowMemory] = {}
+        # Histórico de conversas por sessão (últimas 5 pares de mensagens)
+        self.memorias: dict[str, deque] = {}
 
-    def _obter_memoria(self, session_id: str) -> ConversationBufferWindowMemory:
+    def _obter_memoria(self, session_id: str) -> deque:
         """
         Obtém ou cria a memória de conversa para uma sessão.
 
@@ -82,14 +83,11 @@ class Chatbot:
             session_id: Identificador da sessão.
 
         Returns:
-            Memória de conversa da sessão.
+            Deque com as últimas mensagens da sessão.
         """
         if session_id not in self.memorias:
-            self.memorias[session_id] = ConversationBufferWindowMemory(
-                k=5,
-                return_messages=True,
-                memory_key="historico",
-            )
+            # maxlen=10 para guardar 5 pares (pergunta + resposta)
+            self.memorias[session_id] = deque(maxlen=10)
         return self.memorias[session_id]
 
     def chat(self, pergunta: str, session_id: str = "default") -> dict:
@@ -145,20 +143,17 @@ class Chatbot:
 
         # Obtém o histórico da sessão
         memoria = self._obter_memoria(session_id)
-        historico = memoria.load_memory_variables({}).get("historico", [])
 
         # Monta as mensagens com histórico
-        mensagens = historico + [HumanMessage(content=prompt_usuario)]
+        mensagens = list(memoria) + [HumanMessage(content=prompt_usuario)]
 
         # Chama o LLM
         resposta = self.llm.invoke(mensagens)
         resposta_texto = resposta.content
 
         # Salva no histórico
-        memoria.save_context(
-            {"input": pergunta},
-            {"output": resposta_texto},
-        )
+        memoria.append(HumanMessage(content=pergunta))
+        memoria.append(AIMessage(content=resposta_texto))
 
         return {
             "answer": resposta_texto,

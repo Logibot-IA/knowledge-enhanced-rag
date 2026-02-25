@@ -73,7 +73,10 @@ def obter_embeddings() -> HuggingFaceEmbeddings:
     Returns:
         Instância de HuggingFaceEmbeddings.
     """
-    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+    return HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL,
+        model_kwargs={"device": "cpu"},
+    )
 
 
 def criar_indice(chunks: list) -> FAISS:

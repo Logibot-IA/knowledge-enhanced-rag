@@ -110,13 +110,6 @@ NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=sua_senha_aqui
 ```
 
-#### Como obter a chave da Digital Ocean GenAI Platform
-
-1. Acesse [cloud.digitalocean.com/gen-ai](https://cloud.digitalocean.com/gen-ai)
-2. Crie ou acesse sua conta Digital Ocean
-3. Vá em **API Keys** → **Create API Key**
-4. Copie a chave gerada
-
 #### Como criar o banco Neo4j Aura
 
 1. Acesse [neo4j.com/cloud/aura](https://neo4j.com/cloud/aura)
