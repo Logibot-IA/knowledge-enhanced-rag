@@ -16,7 +16,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 # Diretórios padrão
 BASE_DIR = Path(__file__).resolve().parent.parent
-APOSTILAS_DIR = BASE_DIR / "data" / "apostilas"
+APOSTILAS_DIR = BASE_DIR.parent / "docs"
 FAISS_INDEX_DIR = BASE_DIR / "data" / "faiss_index"
 
 # Modelo de embeddings (igual ao hybrid-rag)
