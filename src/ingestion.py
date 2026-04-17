@@ -81,7 +81,7 @@ def obter_embeddings() -> HuggingFaceEmbeddings:
 
 def criar_indice(chunks: list) -> FAISS:
     """
-    Cria um novo índice FAISS a partir dos chunks.
+    Cria um novo índice FAISS a partir dos chunks com batching.
 
     Args:
         chunks: Lista de Documents do LangChain.
@@ -89,9 +89,19 @@ def criar_indice(chunks: list) -> FAISS:
     Returns:
         Índice FAISS criado.
     """
-    print("Gerando embeddings e criando índice FAISS...")
+    print(f"Gerando embeddings e criando índice FAISS ({len(chunks)} chunks)...")
     embeddings = obter_embeddings()
-    indice = FAISS.from_documents(chunks, embeddings)
+    batch_size = 500
+
+    indice = FAISS.from_documents(chunks[:batch_size], embeddings)
+    print(f"  {min(batch_size, len(chunks))}/{len(chunks)} chunks indexados")
+
+    for i in range(batch_size, len(chunks), batch_size):
+        batch = chunks[i:i + batch_size]
+        indice.add_documents(batch)
+        print(f"  {min(i + batch_size, len(chunks))}/{len(chunks)} chunks indexados")
+
+    FAISS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
     indice.save_local(str(FAISS_INDEX_DIR))
     print(f"Índice FAISS salvo em '{FAISS_INDEX_DIR}'.")
     return indice
