@@ -4,13 +4,11 @@ Script de avaliação RAGAS para o KE-RAG.
 Executa as test_queries predefinidas de forma automática e retorna
 as métricas: faithfulness, answer_relevancy, context_precision, context_recall.
 
-Uso: python evaluate.py [--iterations N] [--output-dir PATH]
-    (executar a partir da pasta knowledge-enhanced-rag/)
+Uso: python evaluate.py  (executar a partir da pasta knowledge-enhanced-rag/)
 """
 
 import os
 import sys
-import argparse
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -34,8 +32,7 @@ from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from langsmith import traceable
 
-DEFAULT_NUM_ITERATIONS = 3
-DEFAULT_OUTPUT_DIR = "."
+DEFAULT_OUTPUT_DIR = "results"
 
 test_queries = [
     "O que são conectivos lógicos e quais são os cinco conectivos apresentados na Apostila de Lógica de Programação?",
@@ -67,6 +64,18 @@ ground_truths = [
 @traceable(name="ke-rag-query", run_type="chain")
 def ke_rag_traced(chatbot, query):
     return chatbot.chat(query)
+
+
+def _next_csv_path(output_dir=DEFAULT_OUTPUT_DIR):
+    base_dir = Path(output_dir)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    counter = 1
+    while True:
+        candidate = base_dir / f"kerag_{counter}_csv.csv"
+        if not candidate.exists():
+            return candidate
+        counter += 1
 
 
 def evaluate_ke_rag():
@@ -131,48 +140,12 @@ def evaluate_ke_rag():
     print("\nDetalhes por query:")
     print(df.to_string())
 
+    csv_path = _next_csv_path()
+    df.to_csv(csv_path, index=False)
+    print(f"\nCSV salvo em: {csv_path}")
+
     return result
 
 
-def evaluate_ke_rag_iterations(num_iterations=DEFAULT_NUM_ITERATIONS, output_dir=DEFAULT_OUTPUT_DIR):
-    if num_iterations < 1:
-        raise ValueError("num_iterations precisa ser >= 1")
-
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    results = []
-    for iteration in range(1, num_iterations + 1):
-        print(f"\n=== Iteracao {iteration}/{num_iterations} ===")
-
-        result = evaluate_ke_rag()
-        df = result.to_pandas()
-
-        csv_path = output_path / f"kerag_{iteration}.csv"
-        df.to_csv(csv_path, index=False)
-
-        print(f"CSV salvo em: {csv_path}")
-        results.append(result)
-
-    return results
-
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Avaliacao RAGAS para o KE-RAG")
-    parser.add_argument(
-        "--iterations",
-        type=int,
-        default=DEFAULT_NUM_ITERATIONS,
-        help="Numero de iteracoes da avaliacao",
-    )
-    parser.add_argument(
-        "--output-dir",
-        default=DEFAULT_OUTPUT_DIR,
-        help="Diretorio para salvar os CSVs",
-    )
-    args = parser.parse_args()
-
-    if args.iterations > 1 or args.output_dir != DEFAULT_OUTPUT_DIR:
-        evaluate_ke_rag_iterations(args.iterations, args.output_dir)
-    else:
-        evaluate_ke_rag()
+    evaluate_ke_rag()
