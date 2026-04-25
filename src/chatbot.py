@@ -1,7 +1,7 @@
 """
 Módulo principal do Chatbot KE-RAG.
 
-Implementa a lógica de conversação usando LangChain + Digital Ocean GenAI Platform (LLaMA 3.3 70B)
+Implementa a lógica de conversação usando LangChain + Digital Ocean GenAI Platform
 combinada com o retriever KE-RAG.
 """
 
@@ -63,7 +63,7 @@ class Chatbot:
             )
 
         self.llm = ChatOpenAI(
-            model="llama3.3-70b-instruct",
+            model="openai-gpt-oss-120b",
             openai_api_key=openai_api_key,
             openai_api_base="https://inference.do-ai.run/v1",
             temperature=0.7,

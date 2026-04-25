@@ -32,6 +32,8 @@ from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from langsmith import traceable
 
+DEFAULT_OUTPUT_DIR = "results"
+
 test_queries = [
     "Como o livro Algoritmos: Teoria e Prática, de Cormen, define a notação Θ (Theta) e qual teorema relaciona Θ com as notações O e Ω?",
     "Como Manzano e Oliveira, no livro Algoritmos: Lógica para Desenvolvimento de Programação de Computadores, descrevem o papel do programador de computador e o que é o diagrama de blocos?",
@@ -62,6 +64,18 @@ ground_truths = [
 @traceable(name="ke-rag-query", run_type="chain")
 def ke_rag_traced(chatbot, query):
     return chatbot.chat(query)
+
+
+def _next_csv_path(output_dir=DEFAULT_OUTPUT_DIR):
+    base_dir = Path(output_dir)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    counter = 1
+    while True:
+        candidate = base_dir / f"kerag_{counter}_csv.csv"
+        if not candidate.exists():
+            return candidate
+        counter += 1
 
 
 def evaluate_ke_rag():
@@ -105,7 +119,7 @@ def evaluate_ke_rag():
     dataset = Dataset.from_list(ragas_data)
 
     eval_llm = ChatOpenAI(
-        model="llama3.3-70b-instruct",
+        model="openai-gpt-oss-120b",
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         openai_api_base="https://inference.do-ai.run/v1",
         temperature=0,
@@ -125,6 +139,10 @@ def evaluate_ke_rag():
     df = result.to_pandas()
     print("\nDetalhes por query:")
     print(df.to_string())
+
+    csv_path = _next_csv_path()
+    df.to_csv(csv_path, index=False)
+    print(f"\nCSV salvo em: {csv_path}")
 
     return result
 
