@@ -21,7 +21,7 @@ Pergunta do Aluno
    │            │
    ▼            ▼
 ┌──────┐  ┌──────────────┐
-│FAISS │  │ Knowledge    │
+│Chroma│  │ Knowledge    │
 │Index │  │ Graph (Neo4j)│
 └──┬───┘  └──────┬───────┘
    │              │
@@ -31,8 +31,7 @@ Pergunta do Aluno
           │
           ▼
    ┌─────────────┐
-   │ LLaMA 3.3   │  (via Digital Ocean GenAI Platform)
-   │ 70B (DO)    │
+   │ OpenAI LLM  │  (gpt-5.5 por padrão)
    └──────┬──────┘
           │
           ▼
@@ -43,14 +42,14 @@ Pergunta do Aluno
 
 | Componente         | Tecnologia                                          |
 |--------------------|-----------------------------------------------------|
-| LLM                | LLaMA 3.3 70B via Digital Ocean GenAI Platform      |
+| LLM                | OpenAI (`gpt-5.5` por padrão)                       |
 | Framework          | LangChain                                           |
-| Vector Store       | FAISS                                               |
+| Vector Store       | ChromaDB                                            |
 | Knowledge Graph    | Neo4j Aura Free (cloud)                             |
 | PDF Parsing        | PyPDFDirectoryLoader (LangChain)                    |
 | Interface          | FastAPI (API REST)                                  |
 | Linguagem          | Python 3.10+                                        |
-| Embeddings         | sentence-transformers/all-mpnet-base-v2             |
+| Embeddings         | OpenAI `text-embedding-3-large`                     |
 
 ## Estrutura de Pastas
 
@@ -60,7 +59,7 @@ kerag/
 │   └── apostilas/              ← coloque os PDFs aqui
 ├── src/
 │   ├── __init__.py
-│   ├── ingestion.py            ← carrega, divide e indexa os PDFs no FAISS
+│   ├── ingestion.py            ← carrega, divide e indexa os PDFs no Chroma
 │   ├── knowledge_graph.py      ← constrói e consulta o grafo de conceitos
 │   ├── retriever.py            ← pipeline KE-RAG (combina RAG + KG)
 │   └── chatbot.py              ← lógica principal do chatbot
@@ -76,7 +75,7 @@ kerag/
 ### 1. Pré-requisitos
 
 - Python 3.10 ou superior
-- Conta na [Digital Ocean](https://cloud.digitalocean.com/gen-ai) para obter a API key do GenAI Platform
+- Conta na OpenAI com acesso à API
 - Conta gratuita no [Neo4j Aura](https://neo4j.com/cloud/aura) para o Knowledge Graph
 
 ### 2. Clonar e instalar dependências
@@ -101,8 +100,14 @@ cp .env.example .env
 Edite o arquivo `.env`:
 
 ```env
-# Digital Ocean GenAI Platform
-OPENAI_API_KEY=sua_chave_aqui
+# OpenAI
+OPENAI_API_KEY=sk-sua_chave_openai
+OPENAI_MODEL=gpt-5.5
+OPENAI_EMBEDDING_MODEL=text-embedding-3-large
+OPENAI_REASONING_EFFORT=medium
+DOCS_DIR=../docs/
+CHROMA_PERSIST_DIR=./chroma_knowledge_db_openai
+CHROMA_COLLECTION_NAME=knowledge_collection_openai
 
 # Neo4j Aura (gratuito em neo4j.com/cloud/aura)
 NEO4J_URI=neo4j+s://xxxxxxxx.databases.neo4j.io
@@ -119,10 +124,10 @@ NEO4J_PASSWORD=sua_senha_aqui
 
 ### 4. Adicionar as apostilas
 
-Coloque os arquivos PDF das apostilas de Lógica de Programação na pasta:
+Coloque os arquivos PDF das apostilas de Lógica de Programação na pasta configurada em `DOCS_DIR` (`../docs/` por padrão):
 
 ```
-data/apostilas/
+../docs/
 ```
 
 Qualquer arquivo `.pdf` colocado nessa pasta será automaticamente indexado.
@@ -262,10 +267,10 @@ Variáveis → Tipos de Dados → Operadores → Entrada e Saída
 ## Como Funciona o KE-RAG
 
 1. **Pergunta do aluno** chega via API
-2. **FAISS** busca os 5 trechos mais relevantes nas apostilas (busca semântica)
+2. **Chroma** busca os 5 trechos mais relevantes nas apostilas (busca semântica)
 3. **Knowledge Graph** identifica o conceito principal e retorna:
    - Fatos relacionados ao conceito
    - Pré-requisitos necessários
    - Próximos conceitos sugeridos
-4. **LLaMA 3.3 70B** (via Digital Ocean GenAI Platform) gera uma resposta enriquecida combinando o contexto das apostilas com o conhecimento do grafo
+4. **OpenAI** gera uma resposta enriquecida combinando o contexto das apostilas com o conhecimento do grafo
 5. **Histórico** das últimas 5 mensagens é mantido por sessão para contexto contínuo

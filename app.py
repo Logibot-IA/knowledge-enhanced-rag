@@ -8,16 +8,15 @@ Endpoints disponíveis:
 - GET  /health       — Verificação de saúde da API
 """
 
-import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
 
-# Carrega as variáveis de ambiente do arquivo .env
-load_dotenv()
+from rag_settings import configure_environment
+
+configure_environment("benchmark-knowledge-enhanced-rag")
 
 from src.chatbot import Chatbot
 from src.ingestion import reindexar

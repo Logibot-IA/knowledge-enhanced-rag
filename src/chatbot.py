@@ -1,16 +1,20 @@
 """
 Módulo principal do Chatbot KE-RAG.
 
-Implementa a lógica de conversação usando LangChain + Digital Ocean GenAI Platform
+Implementa a lógica de conversação usando LangChain + OpenAI
 combinada com o retriever KE-RAG.
 """
 
-import os
 from collections import deque
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage
 
+from rag_settings import (
+    build_callback_config,
+    build_llm,
+    extract_response_text,
+    get_openai_api_key,
+)
 from src.retriever import KERagRetriever
 from src.knowledge_graph import KnowledgeGraph
 
@@ -55,20 +59,8 @@ class Chatbot:
         Args:
             knowledge_graph: Instância do KnowledgeGraph (opcional).
         """
-        openai_api_key = os.environ.get("OPENAI_API_KEY", "")
-        if not openai_api_key:
-            raise ValueError(
-                "Variável de ambiente OPENAI_API_KEY é obrigatória. "
-                "Obtenha sua chave em cloud.digitalocean.com/gen-ai"
-            )
-
-        self.llm = ChatOpenAI(
-            model="openai-gpt-oss-120b",
-            openai_api_key=openai_api_key,
-            openai_api_base="https://inference.do-ai.run/v1",
-            temperature=0.7,
-            max_tokens=1024,
-        )
+        get_openai_api_key()
+        self.llm = build_llm()
 
         self.retriever = KERagRetriever(knowledge_graph=knowledge_graph)
 
@@ -90,7 +82,7 @@ class Chatbot:
             self.memorias[session_id] = deque(maxlen=10)
         return self.memorias[session_id]
 
-    def chat(self, pergunta: str, session_id: str = "default") -> dict:
+    def chat(self, pergunta: str, session_id: str = "default", callbacks=None) -> dict:
         """
         Processa uma pergunta e retorna a resposta do chatbot.
 
@@ -148,8 +140,11 @@ class Chatbot:
         mensagens = list(memoria) + [HumanMessage(content=prompt_usuario)]
 
         # Chama o LLM
-        resposta = self.llm.invoke(mensagens)
-        resposta_texto = resposta.content
+        resposta = self.llm.invoke(
+            mensagens,
+            config=build_callback_config(callbacks),
+        )
+        resposta_texto = extract_response_text(resposta)
 
         # Salva no histórico
         memoria.append(HumanMessage(content=pergunta))

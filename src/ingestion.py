@@ -1,26 +1,30 @@
 """
-Módulo de ingestão de PDFs para o KE-RAG.
+Modulo de ingestao de PDFs para o KE-RAG.
 
-Responsável por:
-- Carregar PDFs da pasta data/apostilas/
+Responsavel por:
+- Carregar PDFs da pasta configurada
 - Dividir em chunks de texto
-- Gerar embeddings e salvar no índice FAISS
+- Gerar embeddings OpenAI e salvar em um indice Chroma persistido
 """
 
+import os
 from pathlib import Path
 
 from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_community.vectorstores import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
 
-# Diretórios padrão
+from rag_settings import build_embeddings, get_chroma_settings
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-APOSTILAS_DIR = BASE_DIR.parent / "docs"
-FAISS_INDEX_DIR = BASE_DIR / "data" / "faiss_index"
+DEFAULT_DOCS_DIR = BASE_DIR.parent / "docs"
+APOSTILAS_DIR = Path(os.getenv("DOCS_DIR", str(DEFAULT_DOCS_DIR))).resolve()
 
-# Modelo de embeddings (igual ao hybrid-rag)
-EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
+PERSIST_DIR, CHROMA_COLLECTION_NAME = get_chroma_settings(
+    "./chroma_knowledge_db_openai",
+    "knowledge_collection_openai",
+)
 
 
 def carregar_pdfs(pasta: Path = APOSTILAS_DIR) -> list:
@@ -47,7 +51,7 @@ def carregar_pdfs(pasta: Path = APOSTILAS_DIR) -> list:
 
 def dividir_em_chunks(documentos: list) -> list:
     """
-    Divide os documentos em chunks menores para indexação.
+    Divide os documentos em chunks menores para indexacao.
 
     Args:
         documentos: Lista de objetos Document do LangChain.
@@ -56,8 +60,8 @@ def dividir_em_chunks(documentos: list) -> list:
         Lista de objetos Document do LangChain divididos em chunks.
     """
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=120,
+        chunk_size=800,
+        chunk_overlap=100,
         add_start_index=True,
     )
 
@@ -66,86 +70,77 @@ def dividir_em_chunks(documentos: list) -> list:
     return chunks
 
 
-def obter_embeddings() -> HuggingFaceEmbeddings:
+def criar_vectorstore() -> Chroma:
     """
-    Inicializa o modelo de embeddings.
+    Inicializa o Chroma com embeddings OpenAI.
 
     Returns:
-        Instância de HuggingFaceEmbeddings.
+        Instancia de Chroma pronta para leitura ou escrita.
     """
-    return HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={"device": "cpu"},
+    return Chroma(
+        collection_name=CHROMA_COLLECTION_NAME,
+        embedding_function=build_embeddings(),
+        persist_directory=PERSIST_DIR,
     )
 
 
-def criar_indice(chunks: list) -> FAISS:
+def criar_indice(chunks: list) -> Chroma:
     """
-    Cria um novo índice FAISS a partir dos chunks com batching.
+    Cria um novo indice Chroma a partir dos chunks com batching.
 
     Args:
         chunks: Lista de Documents do LangChain.
 
     Returns:
-        Índice FAISS criado.
+        Indice Chroma criado.
     """
-    print(f"Gerando embeddings e criando índice FAISS ({len(chunks)} chunks)...")
-    embeddings = obter_embeddings()
+    print(f"Gerando embeddings e criando indice Chroma ({len(chunks)} chunks)...")
+    indice = criar_vectorstore()
     batch_size = 500
 
-    indice = FAISS.from_documents(chunks[:batch_size], embeddings)
-    print(f"  {min(batch_size, len(chunks))}/{len(chunks)} chunks indexados")
-
-    for i in range(batch_size, len(chunks), batch_size):
+    for i in range(0, len(chunks), batch_size):
         batch = chunks[i:i + batch_size]
-        indice.add_documents(batch)
+        indice.add_documents(documents=batch)
         print(f"  {min(i + batch_size, len(chunks))}/{len(chunks)} chunks indexados")
 
-    FAISS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
-    indice.save_local(str(FAISS_INDEX_DIR))
-    print(f"Índice FAISS salvo em '{FAISS_INDEX_DIR}'.")
+    print(f"Indice Chroma salvo em '{PERSIST_DIR}'.")
     return indice
 
 
-def carregar_indice() -> FAISS:
+def carregar_indice() -> Chroma:
     """
-    Carrega o índice FAISS existente do disco.
+    Carrega o indice Chroma existente do disco.
 
     Returns:
-        Índice FAISS carregado.
+        Indice Chroma carregado.
     """
-    embeddings = obter_embeddings()
-    indice = FAISS.load_local(
-        str(FAISS_INDEX_DIR),
-        embeddings,
-        allow_dangerous_deserialization=True,
-    )
-    print("Índice FAISS carregado do disco.")
+    indice = criar_vectorstore()
+    print("Indice Chroma inicializado.")
     return indice
 
 
-def load_or_create_index() -> FAISS:
+def load_or_create_index() -> Chroma:
     """
-    Verifica se o índice FAISS já existe e o carrega; caso contrário, cria um novo.
+    Verifica se o indice Chroma ja existe e o carrega; caso contrario, cria um novo.
 
     Returns:
-        Índice FAISS pronto para uso.
+        Indice Chroma pronto para uso.
 
     Raises:
-        RuntimeError: Se não houver PDFs e o índice não existir.
+        RuntimeError: Se nao houver PDFs e o indice nao existir.
     """
-    indice_existe = (FAISS_INDEX_DIR / "index.faiss").exists()
+    indice = carregar_indice()
 
-    if indice_existe:
-        print("Índice FAISS encontrado. Carregando...")
-        return carregar_indice()
+    if indice._collection.count() > 0:
+        print(f"Indice Chroma encontrado com {indice._collection.count()} chunks. Pulando ingestao.")
+        return indice
 
-    print("Índice FAISS não encontrado. Criando novo índice...")
+    print("Indice Chroma vazio. Criando novo indice...")
     documentos = carregar_pdfs()
 
     if not documentos:
         raise RuntimeError(
-            "Nenhum PDF encontrado e nenhum índice existente. "
+            "Nenhum PDF encontrado e nenhum indice existente. "
             f"Adicione PDFs em '{APOSTILAS_DIR}' e tente novamente."
         )
 
@@ -153,15 +148,15 @@ def load_or_create_index() -> FAISS:
     return criar_indice(chunks)
 
 
-def reindexar() -> FAISS:
+def reindexar() -> Chroma:
     """
-    Força a recriação do índice FAISS a partir dos PDFs atuais.
+    Forca a recriacao do indice Chroma a partir dos PDFs atuais.
 
     Returns:
-        Novo índice FAISS.
+        Novo indice Chroma.
 
     Raises:
-        RuntimeError: Se não houver PDFs disponíveis.
+        RuntimeError: Se nao houver PDFs disponiveis.
     """
     print("Reindexando PDFs...")
     documentos = carregar_pdfs()
@@ -171,6 +166,12 @@ def reindexar() -> FAISS:
             f"Nenhum PDF encontrado em '{APOSTILAS_DIR}'. "
             "Adicione PDFs antes de reindexar."
         )
+
+    indice = criar_vectorstore()
+    existing_ids = indice.get().get("ids", [])
+
+    if existing_ids:
+        indice.delete(ids=existing_ids)
 
     chunks = dividir_em_chunks(documentos)
     return criar_indice(chunks)

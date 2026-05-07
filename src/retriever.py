@@ -1,7 +1,7 @@
 """
 Módulo do retriever KE-RAG.
 
-Combina a busca semântica no FAISS com consultas ao Knowledge Graph
+Combina a busca semântica no Chroma com consultas ao Knowledge Graph
 para enriquecer o contexto das respostas.
 """
 
@@ -11,12 +11,12 @@ from src.knowledge_graph import KnowledgeGraph
 
 class KERagRetriever:
     """
-    Retriever que combina FAISS (busca semântica) com Knowledge Graph.
+    Retriever que combina Chroma (busca semântica) com Knowledge Graph.
     """
 
     def __init__(self, knowledge_graph: KnowledgeGraph | None = None):
         """
-        Inicializa o retriever carregando o índice FAISS e o Knowledge Graph.
+        Inicializa o retriever carregando o índice Chroma e o Knowledge Graph.
 
         Args:
             knowledge_graph: Instância do KnowledgeGraph. Se None, tenta criar uma.
@@ -33,9 +33,9 @@ class KERagRetriever:
 
     def retrieve(self, pergunta: str) -> dict:
         """
-        Realiza a recuperação KE-RAG combinando FAISS e Knowledge Graph.
+        Realiza a recuperação KE-RAG combinando Chroma e Knowledge Graph.
 
-        1. Busca os top-5 chunks relevantes no FAISS
+        1. Busca os top-5 chunks relevantes no Chroma
         2. Tenta identificar o conceito principal da pergunta
         3. Consulta o Knowledge Graph para obter fatos relacionados
         4. Retorna um dicionário com docs, kg_facts, prerequisites e next_concepts
@@ -45,12 +45,12 @@ class KERagRetriever:
 
         Returns:
             Dicionário com:
-                - docs: Lista de Documents recuperados do FAISS
+                - docs: Lista de Documents recuperados do Chroma
                 - kg_facts: Fatos do Knowledge Graph sobre o conceito
                 - prerequisites: Pré-requisitos do conceito identificado
                 - next_concepts: Próximos conceitos sugeridos
         """
-        # 1. Busca semântica no FAISS
+        # 1. Busca semântica no Chroma
         docs = self.indice.similarity_search(pergunta, k=5)
 
         # 2. Identifica o conceito principal da pergunta

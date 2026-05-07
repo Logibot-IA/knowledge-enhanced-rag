@@ -11,8 +11,9 @@ __pycache__/
 # Variáveis de ambiente (contém chaves secretas)
 .env
 
-# Índice FAISS gerado localmente
+# Índices gerados localmente
 data/faiss_index/
+chroma_knowledge_db_openai/
 
 # PDFs das apostilas (não versionar arquivos grandes)
 data/apostilas/*.pdf
@@ -24,3 +25,4 @@ data/apostilas/*.pdf
 
 # ChromaDB
 chroma_langchain_db/
+results*
